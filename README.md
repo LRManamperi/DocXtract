@@ -15,16 +15,36 @@ A Python library for extracting tables and charts from PDF documents.
 pip install -r requirements.txt
 ```
 
-For OCR functionality (optional):
+### OCR Support (Required for Table Text Extraction)
+
+DocXtract uses Tesseract OCR for extracting text from table cells. Install it using one of these methods:
+
+**Option 1: Automatic Installation (Windows)**
 ```bash
-# Install Tesseract OCR
-# On Ubuntu/Debian:
+python install_tesseract.py
+```
+
+**Option 2: Manual Installation**
+
+**On Windows:**
+- Download from: https://github.com/UB-Mannheim/tesseract/wiki
+- Run the installer (tesseract-ocr-w64-setup-*.exe)
+- Add `C:\Program Files\Tesseract-OCR` to your PATH
+- Test with: `tesseract --version`
+
+**On Ubuntu/Debian:**
+```bash
 sudo apt-get install tesseract-ocr
+```
 
-# On macOS:
+**On macOS:**
+```bash
 brew install tesseract
+```
 
-# On Windows: Download from https://github.com/UB-Mannheim/tesseract/wiki
+**Test OCR Installation:**
+```bash
+python test_ocr.py
 ```
 
 ## Usage
@@ -32,6 +52,18 @@ brew install tesseract
 ### Web Dashboard (Recommended)
 
 Launch the professional web interface for an intuitive PDF analysis experience:
+
+```bash
+python run_dashboard.py
+```
+
+Or install in development mode:
+
+```bash
+python install_dev.py
+```
+
+Then run:
 
 ```bash
 python run_dashboard.py
