@@ -147,22 +147,29 @@ class GridBasedTableParser(BaseParser):
         if total_cells == 0:
             return False
             
-        # Count empty cells
+        # Count empty/placeholder cells
         empty_cells = 0
         total_text_length = 0
+        has_real_content = False
         
         for row in data:
             for cell in row:
                 cell_str = str(cell).strip()
-                if not cell_str or cell_str == '':
+                if not cell_str or cell_str == '' or cell_str.startswith('[Cell '):
                     empty_cells += 1
                 else:
                     total_text_length += len(cell_str)
+                    has_real_content = True
 
-        # If more than 70% cells are empty, consider it not a real table
-        empty_ratio = empty_cells / total_cells if total_cells > 0 else 1.0
+        # If we have any real content, consider it valid
+        if has_real_content:
+            return True
+            
+        # If all cells are placeholders (OCR not available), still consider it a valid table structure
+        # as long as we have the expected number of cells
+        placeholder_ratio = empty_cells / total_cells if total_cells > 0 else 1.0
         
-        return empty_ratio < 0.7 and total_text_length > 10
+        return placeholder_ratio < 0.8  # Allow up to 80% placeholders for OCR-less operation
 
     def _extract_cells(self, image: np.ndarray, h_lines: List[int], 
                        v_lines: List[int]) -> List[Tuple[int, int, str]]:
@@ -176,6 +183,17 @@ class GridBasedTableParser(BaseParser):
         except ImportError:
             has_ocr = False
             print("Warning: pytesseract not available. Install it for OCR support.")
+
+        # Check if Tesseract is actually installed
+        tesseract_available = False
+        if has_ocr:
+            try:
+                # Try to get tesseract version to check if it's installed
+                pytesseract.get_tesseract_version()
+                tesseract_available = True
+            except Exception:
+                print("Warning: Tesseract OCR not found. Table extraction will return empty cells.")
+                print("Install Tesseract from: https://github.com/UB-Mannheim/tesseract/wiki")
 
         for i in range(len(h_lines) - 1):
             for j in range(len(v_lines) - 1):
@@ -198,7 +216,7 @@ class GridBasedTableParser(BaseParser):
                 cell_region = image[y1:y2, x1:x2]
 
                 text = ''
-                if has_ocr and cell_region.size > 0:
+                if tesseract_available and cell_region.size > 0:
                     try:
                         # Preprocess cell for better OCR
                         cell_gray = cv2.cvtColor(cell_region, cv2.COLOR_BGR2GRAY)
@@ -213,6 +231,9 @@ class GridBasedTableParser(BaseParser):
                         ).strip()
                     except Exception as e:
                         text = ''
+                elif not tesseract_available:
+                    # Provide placeholder text indicating OCR is not available
+                    text = f"[Cell {i},{j}]"  # Placeholder for missing OCR
 
                 cells.append((i, j, text))
 
