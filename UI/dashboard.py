@@ -8,26 +8,16 @@ import sys
 import os
 
 # Handle imports - support both relative and absolute
-try:
+
     # Try absolute imports (when PYTHONPATH is set to parent directory)
-    from UI.config import apply_page_config, apply_custom_css
-    from UI.page_modules import (
+from UI.config import apply_page_config, apply_custom_css
+from UI.page_modules import (
         render_home,
         render_charts_analysis,
         render_chart_data_tables,
         render_testing,
         render_about
-    )
-except ImportError:
-    # Fallback to relative imports (when run as module)
-    from .config import apply_page_config, apply_custom_css
-    from .page_modules import (
-        render_home,
-        render_charts_analysis,
-        render_chart_data_tables,
-        render_testing,
-        render_about
-    )
+)
 
 # Apply configuration
 apply_page_config()

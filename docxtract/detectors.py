@@ -69,6 +69,11 @@ class TextClusterTableDetector(LineBasedTableDetector):
     """
     pass
 
+class BaseDetector(BaseDetector):
+    pass
+
+class MLTableDetector(BaseDetector):
+    pass
 
 # ============================================================
 # GRAPH / CHART DETECTOR
