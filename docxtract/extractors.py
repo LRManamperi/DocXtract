@@ -115,8 +115,23 @@ class DocXtract:
                 
                 # Add chart data to graph object
                 graph.data = chart_data
+                
+                # Extract values based on chart type
+                # All chart types now have 'values' as a list of floats
                 graph.extracted_values = chart_data.get('values', [])
-                graph.point_count = chart_data.get('point_count', chart_data.get('bar_count', 0))
+                
+                # Set point_count based on chart type
+                if graph_type == ElementType.BAR_CHART:
+                    graph.point_count = chart_data.get('bar_count', len(graph.extracted_values))
+                elif graph_type == ElementType.LINE_CHART:
+                    graph.point_count = chart_data.get('point_count', len(graph.extracted_values))
+                elif graph_type == ElementType.SCATTER_PLOT:
+                    graph.point_count = chart_data.get('point_count', len(graph.extracted_values))
+                elif graph_type == ElementType.PIE_CHART:
+                    graph.point_count = chart_data.get('slice_count', len(graph.extracted_values))
+                else:
+                    # Fallback for unknown types
+                    graph.point_count = chart_data.get('point_count', chart_data.get('bar_count', len(graph.extracted_values)))
                 
                 result.graphs.append(graph)
                 
@@ -192,8 +207,22 @@ class DocXtract:
             
             graph = Graph(region, bbox, 1, graph_type, confidence)
             graph.data = chart_data
+            
+            # Extract values based on chart type (same logic as extract method)
+            # All chart types now have 'values' as a list of floats
             graph.extracted_values = chart_data.get('values', [])
-            graph.point_count = chart_data.get('point_count', chart_data.get('bar_count', 0))
+            
+            # Set point_count based on chart type
+            if graph_type == ElementType.BAR_CHART:
+                graph.point_count = chart_data.get('bar_count', len(graph.extracted_values))
+            elif graph_type == ElementType.LINE_CHART:
+                graph.point_count = chart_data.get('point_count', len(graph.extracted_values))
+            elif graph_type == ElementType.SCATTER_PLOT:
+                graph.point_count = chart_data.get('point_count', len(graph.extracted_values))
+            elif graph_type == ElementType.PIE_CHART:
+                graph.point_count = chart_data.get('slice_count', len(graph.extracted_values))
+            else:
+                graph.point_count = chart_data.get('point_count', chart_data.get('bar_count', len(graph.extracted_values)))
             
             result.graphs.append(graph)
             graph_bboxes.add((x1, y1, x2, y2))
