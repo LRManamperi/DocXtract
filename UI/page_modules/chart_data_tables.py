@@ -20,8 +20,8 @@ except ImportError:
 
 def render_chart_data_tables():
     """Render the chart data tables page"""
-    st.markdown('<h2 class="sub-header">📋 Extracted Chart Data</h2>', unsafe_allow_html=True)
-    st.info("💡 This section shows numerical data extracted from detected charts")
+    st.markdown('<h2 class="sub-header">� Extracted Chart Data</h2>', unsafe_allow_html=True)
+    st.info("💡 This section shows numerical data extracted from detected charts with axis information")
 
     if 'result' not in st.session_state:
         st.info("👆 Please upload and analyze a PDF first from the Home tab.")
@@ -117,9 +117,21 @@ def _render_extracted_data(charts_with_data):
                 with col_a:
                     st.markdown(f"**Type:** {chart_type}")
                     st.markdown(f"**Confidence:** {graph.confidence:.1%}")
+                    # Show axis labels if available
+                    if hasattr(graph, 'x_label') and graph.x_label:
+                        st.markdown(f"**X-Axis:** {graph.x_label}")
+                    elif hasattr(graph, 'data') and graph.data and 'x_axis_label' in graph.data:
+                        st.markdown(f"**X-Axis:** {graph.data['x_axis_label']}")
+                    
+                    if hasattr(graph, 'y_label') and graph.y_label:
+                        st.markdown(f"**Y-Axis:** {graph.y_label}")
+                    elif hasattr(graph, 'data') and graph.data and 'y_axis_label' in graph.data:
+                        st.markdown(f"**Y-Axis:** {graph.data['y_axis_label']}")
                 with col_b:
                     st.markdown(f"**Page:** {page_num}")
                     st.markdown(f"**Size:** {graph.bbox.width:.0f}×{graph.bbox.height:.0f}px")
+                    if has_data:
+                        st.markdown(f"**Data Points:** {len(df)}")
                 
                 # Show chart image
                 if graph.image is not None:
@@ -141,15 +153,44 @@ def _render_extracted_data(charts_with_data):
                     
                     st.dataframe(df, use_container_width=True)
                     
-                    # Download button
-                    csv = convert_df_to_csv(df)
-                    st.download_button(
-                        label=f"📥 Download Chart {i+1} Data as CSV",
-                        data=csv,
-                        file_name=f"chart_{i+1}_data_page_{page_num}.csv",
-                        mime="text/csv",
-                        key=f"download_{i}"
-                    )
+                    # Download buttons
+                    col1, col2 = st.columns(2)
+                    
+                    with col1:
+                        # CSV download
+                        csv = convert_df_to_csv(df)
+                        st.download_button(
+                            label=f"📥 Download as CSV",
+                            data=csv,
+                            file_name=f"chart_{i+1}_data_page_{page_num}.csv",
+                            mime="text/csv",
+                            key=f"download_csv_{i}",
+                            use_container_width=True
+                        )
+                    
+                    with col2:
+                        # JSON download
+                        import json
+                        json_data = {
+                            'chart_type': chart_type,
+                            'page': page_num,
+                            'confidence': float(graph.confidence),
+                            'data': df.to_dict('records')
+                        }
+                        if hasattr(graph, 'x_label') and graph.x_label:
+                            json_data['x_label'] = graph.x_label
+                        if hasattr(graph, 'y_label') and graph.y_label:
+                            json_data['y_label'] = graph.y_label
+                        
+                        json_str = json.dumps(json_data, indent=2)
+                        st.download_button(
+                            label=f"📥 Download as JSON",
+                            data=json_str,
+                            file_name=f"chart_{i+1}_data_page_{page_num}.json",
+                            mime="application/json",
+                            key=f"download_json_{i}",
+                            use_container_width=True
+                        )
                 else:
                     st.warning("⚠️ No data could be extracted from this chart")
                     
