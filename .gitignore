@@ -136,10 +136,18 @@ charts/
 *.jpg
 *.jpeg
 
-# DocXtract test results
+# DocXtract test results and outputs
 docxtract_test_results.json
 test_results/
 results/
+test_*.pdf
+*_detailed.json
+*_detailed.csv
+table_*.csv
+table_*.xlsx
+test_output/
+output/
+extracted_data/
 
 # IDE files
 .vscode/

@@ -10,12 +10,25 @@ import numpy as np
 def extract_table_dataframe(table):
     """Extract DataFrame from table object with multiple fallback methods and proper error handling"""
     try:
-        # Method 1: Direct df attribute
-        if hasattr(table, 'df') and table.df is not None:
-            if isinstance(table.df, pd.DataFrame) and not table.df.empty:
-                return table.df
+        # Method 1: Use built-in to_dataframe method if available
+        if hasattr(table, 'to_dataframe'):
+            try:
+                df = table.to_dataframe()
+                if isinstance(df, pd.DataFrame) and not df.empty:
+                    return df
+            except Exception as e:
+                print(f"to_dataframe() failed: {e}")
         
-        # Method 2: Raw data attribute
+        # Method 2: Direct df property/attribute
+        if hasattr(table, 'df'):
+            try:
+                df = table.df
+                if df is not None and isinstance(df, pd.DataFrame) and not df.empty:
+                    return df
+            except Exception as e:
+                print(f"df property failed: {e}")
+        
+        # Method 3: Raw data attribute (numpy array or list)
         if hasattr(table, 'data') and table.data is not None:
             # Handle numpy arrays
             if isinstance(table.data, np.ndarray):
@@ -99,7 +112,7 @@ def convert_df_to_csv(df):
 
 
 def extract_chart_data_as_df(graph):
-    """Extract chart data and convert to DataFrame"""
+    """Extract chart data and convert to DataFrame with axis information"""
     try:
         # Check if graph has data attribute
         if not hasattr(graph, 'data') or not graph.data:
@@ -108,6 +121,10 @@ def extract_chart_data_as_df(graph):
         data = graph.data
         chart_type = graph.graph_type.name
         
+        # Get axis labels if available
+        x_label = getattr(graph, 'x_label', None) or data.get('x_axis_label', 'X')
+        y_label = getattr(graph, 'y_label', None) or data.get('y_axis_label', 'Y')
+        
         # Bar Chart
         if chart_type == "BAR_CHART":
             values = data.get('values', [])
@@ -115,22 +132,25 @@ def extract_chart_data_as_df(graph):
                 return None
             
             bars = data.get('bars', [])
+            categories = data.get('categories', [f'Bar {i+1}' for i in range(len(values))])
+            
             if bars:
-                # Create detailed DataFrame
+                # Create detailed DataFrame with axis info
                 df_data = []
                 for i, (value, bar) in enumerate(zip(values, bars)):
+                    category = categories[i] if i < len(categories) else f'Bar {i+1}'
                     df_data.append({
-                        'Bar': f'Bar {i+1}',
-                        'Value': f'{value:.3f}',
+                        'Category': category,
+                        y_label: f'{value:.3f}',
                         'Height (px)': bar.get('height', 'N/A'),
                         'Position': f"x={bar.get('x', 'N/A')}" if bar.get('orientation') == 'vertical' else f"y={bar.get('y', 'N/A')}"
                     })
                 return pd.DataFrame(df_data)
             else:
-                # Simple DataFrame with just values
+                # Simple DataFrame with just values and axis labels
                 return pd.DataFrame({
-                    'Category': [f'Bar {i+1}' for i in range(len(values))],
-                    'Value': [f'{v:.3f}' for v in values]
+                    x_label: [categories[i] if i < len(categories) else f'Bar {i+1}' for i in range(len(values))],
+                    y_label: [f'{v:.3f}' for v in values]
                 })
         
         # Line Chart
@@ -139,40 +159,61 @@ def extract_chart_data_as_df(graph):
             if not points:
                 return None
             
-            # Limit points for display
+            # Limit points for display (but mention total)
+            original_count = len(points)
             if len(points) > 50:
                 step = len(points) // 50
                 points = points[::step]
             
-            return pd.DataFrame({
-                'Point': [f'P{i+1}' for i in range(len(points))],
-                'X Value': [f'{x:.4f}' for x, y in points],
-                'Y Value': [f'{y:.4f}' for x, y in points]
+            df = pd.DataFrame({
+                'Point #': [i+1 for i in range(len(points))],
+                x_label: [f'{x:.4f}' for x, y in points],
+                y_label: [f'{y:.4f}' for x, y in points]
             })
+            
+            if original_count > 50:
+                st.caption(f"Showing {len(points)} of {original_count} points (sampled for display)")
+            
+            return df
         
         # Pie Chart
         elif chart_type == "PIE_CHART":
             slice_count = data.get('slice_count', 0)
             slice_percentages = data.get('slice_percentages', [])
             slice_angles = data.get('slice_angles', [])
+            values = data.get('values', [])
+            categories = data.get('categories', [f'Slice {i+1}' for i in range(slice_count)])
             
             if slice_count <= 0:
                 return None
             
-            # If no percentages, distribute evenly
+            # If no percentages, calculate from values or distribute evenly
             if not slice_percentages:
-                slice_percentages = [1.0 / slice_count] * slice_count
+                if values:
+                    total = sum(values)
+                    slice_percentages = [v/total if total > 0 else 1.0/slice_count for v in values]
+                else:
+                    slice_percentages = [1.0 / slice_count] * slice_count
             
             df_data = []
             for i in range(slice_count):
+                category = categories[i] if i < len(categories) else f'Slice {i+1}'
                 pct = slice_percentages[i] if i < len(slice_percentages) else (1.0 / slice_count)
                 angle = slice_angles[i] if i < len(slice_angles) else None
+                value = values[i] if i < len(values) else None
                 
-                df_data.append({
-                    'Slice': f'Slice {i+1}',
+                row = {
+                    'Category': category,
                     'Percentage': f'{pct:.1%}',
-                    'Angle': f'{angle:.1f}°' if angle is not None else 'N/A'
-                })
+                }
+                
+                if value is not None:
+                    row['Value'] = f'{value:.3f}'
+                
+                if angle is not None:
+                    row['Angle (degrees)'] = f'{angle:.1f}'
+                
+                df_data.append(row)
             
             return pd.DataFrame(df_data)
         
@@ -182,16 +223,22 @@ def extract_chart_data_as_df(graph):
             if not points:
                 return None
             
-            # Limit points
+            # Limit points for display
+            original_count = len(points)
             if len(points) > 100:
                 step = len(points) // 100
                 points = points[::step]
             
-            return pd.DataFrame({
-                'Point': [f'P{i+1}' for i in range(len(points))],
-                'X Value': [f'{x:.4f}' for x, y in points],
-                'Y Value': [f'{y:.4f}' for x, y in points]
+            df = pd.DataFrame({
+                'Point #': [i+1 for i in range(len(points))],
+                x_label: [f'{x:.4f}' for x, y in points],
+                y_label: [f'{y:.4f}' for x, y in points]
             })
+            
+            if original_count > 100:
+                st.caption(f"Showing {len(points)} of {original_count} points (sampled for display)")
+            
+            return df
         
     except Exception as e:
         st.warning(f"Error extracting chart data: {str(e)}")

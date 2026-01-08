@@ -7,85 +7,108 @@ import streamlit as st
 
 def render_about():
     """Render the about page"""
-    st.markdown('<h2 class="sub-header">ℹ️ About DocXtract Pro</h2>', unsafe_allow_html=True)
+    st.markdown('<h1 class="main-header">ℹ️ About DocXtract Pro</h1>', unsafe_allow_html=True)
     
     st.markdown("""
-    ### 📊 DocXtract Pro
+    ### 📊 What is DocXtract Pro?
     
-    A professional PDF chart and table analysis tool built with:
-    - **DocXtract**: Chart detection and data extraction library
-    - **Streamlit**: Interactive web interface
-    - **OpenCV & NumPy**: Image processing
-    - **Pandas**: Data manipulation
-    
-    ### 🎯 Features
-    
-    ✅ **Chart Detection**
-    - Bar charts (vertical & horizontal)
-    - Line charts
-    - Pie charts
-    - Scatter plots
-    
-    ✅ **Data Extraction**
-    - Automatic extraction of numerical values
-    - Bar heights/widths
-    - Line data points
-    - Pie slice percentages
-    - Scatter plot coordinates
-    
-    ✅ **Export Options**
-    - CSV download for all extracted data
-    - Chart metadata export
-    - JSON format support
-    
-    ### 📖 Usage Guide
-    
-    1. **Upload**: Select a PDF file containing charts
-    2. **Analyze**: Click "Analyze PDF" to process
-    3. **Explore**: View charts in "Charts Analysis" tab
-    4. **Extract**: Check "Chart Data Tables" for numerical data
-    5. **Download**: Export data as CSV files
-    
-    ### 🔧 Technical Details
-    
-    **Chart Detection Method**: Axis-based detection
-    - Detects perpendicular L-shaped axes
-    - One chart per axis pair
-    - Confidence scoring for reliability
-    
-    **Data Extraction**:
-    - Image processing with OpenCV
-    - Contour detection for shapes
-    - Thresholding for data points
-    - Normalized values (0-1 range)
-    
-    ### 💡 Tips
-    
-    - PDFs with clear, well-defined charts work best
-    - Higher resolution PDFs yield better results
-    - Charts with visible axes are easier to detect
-    - Some hand-drawn or stylized charts may not be detected
-    
-    ### 📝 Limitations
-    
-    - Cannot extract data from purely image-based charts without structure
-    - OCR for axis labels not yet implemented
-    - Complex 3D charts may not be supported
-    - Overlapping charts may cause detection issues
-    
-    ### 🚀 Future Enhancements
-    
-    - OCR for axis labels and legends
-    - Support for 3D charts
-    - Multi-chart PDFs with better separation
-    - Real-time preview during upload
-    - Batch processing improvements
+    DocXtract Pro is an advanced PDF document analysis tool that automatically extracts 
+    charts, graphs, and tables from PDF documents using computer vision and machine learning.
     
     ---
     
-    **Version**: 1.0.0  
-    **Built with** ❤️ **using DocXtract & Streamlit**
+    ### 🚀 Features
+    
+    | Feature | Description |
+    |---------|-------------|
+    | **Chart Detection** | Automatically detects bar charts, line charts, pie charts, scatter plots, and more |
+    | **Table Extraction** | Extracts structured data from tables with support for complex layouts |
+    | **Data Export** | Export extracted data to CSV or Excel formats |
+    | **AI Analysis** | Analyze extracted data using LLMs (OpenAI, Groq) |
+    | **OCR Support** | Text extraction from scanned documents using Tesseract |
+    
+    ---
+    
+    ### 🛠️ Technologies Used
+    
+    - **PyMuPDF (fitz)**: PDF parsing and rendering
+    - **OpenCV**: Image processing and chart detection
+    - **Tesseract OCR**: Optical character recognition
+    - **Transformers**: Deep learning models for table detection
+    - **LangChain**: LLM orchestration for AI analysis
+    - **Streamlit**: Web dashboard framework
+    
+    ---
+    
+    ### 📖 How It Works
+    
+    1. **Upload**: Upload a PDF document
+    2. **Detection**: AI models detect charts and tables in the document
+    3. **Extraction**: Data is extracted from detected elements
+    4. **Analysis**: Review extracted data and optionally run AI analysis
+    5. **Export**: Download data in CSV or Excel format
+    
+    ---
+    
+    ### 🔧 Supported Chart Types
+    
+    - Bar Charts (horizontal and vertical)
+    - Line Charts
+    - Pie Charts
+    - Scatter Plots
+    - Area Charts
+    - Combined/Mixed Charts
+    
+    ---
+    
+    ### 📋 Supported Table Types
+    
+    - Grid tables with clear borders
+    - Borderless tables
+    - Complex multi-row/column headers
+    - Nested tables
+    
+    ---
+    
+    ### 🤖 AI Analysis Providers
+    
+    DocXtract Pro supports multiple LLM providers for intelligent data analysis:
+    
+    | Provider | Model | Notes |
+    |----------|-------|-------|
+    | **Groq** | llama-3.3-70b-versatile | Free tier available |
+    | **OpenAI** | GPT-4o-mini | Requires API key |
+    
+    ---
+    
+    ### 📝 Version Information
+    
+    - **Version**: 1.0.0
+    - **License**: MIT
+    - **Author**: DocXtract Team
+    
+    ---
+    
+    ### 🐛 Troubleshooting
+    
+    **Common Issues:**
+    
+    1. **Tesseract not found**: Install Tesseract OCR and add to PATH
+    2. **Low detection accuracy**: Use higher quality PDFs
+    3. **Missing data**: Some charts may require manual extraction
+    
+    ---
+    
+    Built with ❤️ using Python and Streamlit
     """)
 
-    st.markdown('<h2 class="sub-header">🧪 Dataset Testing</h2>', unsafe_allow_html=True)
+
+def _render_tech_card(icon, title, description):
+    """Render a technology card"""
+    st.markdown(f"""
+    <div class="chart-card">
+        <h4>{icon} {title}</h4>
+        <p>{description}</p>
+    </div>
+    """, unsafe_allow_html=True)
 

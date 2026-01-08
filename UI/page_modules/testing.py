@@ -33,19 +33,81 @@ def render_testing():
     current_file_dir = os.path.dirname(os.path.abspath(__file__))
     project_root = os.path.dirname(os.path.dirname(current_file_dir))
     
-    charts_dir = os.path.join(project_root, "chart_dataset", "charts")
-    metadata_file = os.path.join(project_root, "chart_dataset", "metadata.json")
+    # Tab selection for different test sets
+    tab1, tab2 = st.tabs(["📁 Chart Dataset", "🧪 Generated Test PDFs"])
+    
+    with tab1:
+        charts_dir = os.path.join(project_root, "chart_dataset", "charts")
+        metadata_file = os.path.join(project_root, "chart_dataset", "metadata.json")
 
-    if not os.path.exists(charts_dir):
-        st.warning(f"⚠️ Chart dataset not found at: {charts_dir}")
-        st.info("💡 The chart dataset directory should be at: `chart_dataset/charts/` relative to the project root")
-        return
+        if not os.path.exists(charts_dir):
+            st.warning(f"⚠️ Chart dataset not found at: {charts_dir}")
+            st.info("💡 The chart dataset directory should be at: `chart_dataset/charts/` relative to the project root")
+        else:
+            pdf_files = [f for f in os.listdir(charts_dir) if f.endswith('.pdf')]
+            st.info(f"📁 Found {len(pdf_files)} PDF files in {charts_dir}")
 
-    pdf_files = [f for f in os.listdir(charts_dir) if f.endswith('.pdf')]
-    st.info(f"📁 Found {len(pdf_files)} PDF files in {charts_dir}")
-
-    if st.button("🚀 Run Tests on All PDFs", type="primary"):
-        _run_tests(charts_dir, pdf_files)
+            if st.button("🚀 Run Tests on All PDFs", type="primary", key="test_dataset"):
+                _run_tests(charts_dir, pdf_files)
+    
+    with tab2:
+        st.markdown("#### Generated Test PDFs")
+        st.info("These PDFs were generated using `generate_test_pdf.py` and contain various chart and table types for testing.")
+        
+        # Define test PDFs
+        test_pdfs = [
+            {
+                'name': 'test_charts.pdf',
+                'description': 'Bar, line, pie, and scatter charts',
+                'pages': 4,
+                'contains': ['Bar Chart', 'Line Chart', 'Pie Chart', 'Scatter Plot']
+            },
+            {
+                'name': 'test_tables.pdf',
+                'description': 'Structured and unstructured tables',
+                'pages': 3,
+                'contains': ['Grid Table', 'Space-separated Table', 'Mixed Table']
+            },
+            {
+                'name': 'test_combined.pdf',
+                'description': 'Mixed tables and charts',
+                'pages': 5,
+                'contains': ['Financial Table', 'Bar Chart', 'Line Chart', 'Inventory Table']
+            }
+        ]
+        
+        # Display available test PDFs
+        for pdf_info in test_pdfs:
+            pdf_path = os.path.join(project_root, pdf_info['name'])
+            exists = os.path.exists(pdf_path)
+            
+            col1, col2 = st.columns([3, 1])
+            with col1:
+                status_icon = "✅" if exists else "❌"
+                st.markdown(f"**{status_icon} {pdf_info['name']}**")
+                st.caption(f"{pdf_info['description']} • {pdf_info['pages']} pages")
+                st.caption(f"Contains: {', '.join(pdf_info['contains'])}")
+            with col2:
+                if exists:
+                    if st.button("Test", key=f"test_{pdf_info['name']}", type="secondary"):
+                        _run_tests(project_root, [pdf_info['name']])
+                else:
+                    st.caption("Not found")
+        
+        st.markdown("---")
+        
+        # Generate test PDFs if missing
+        missing_pdfs = [pdf['name'] for pdf in test_pdfs if not os.path.exists(os.path.join(project_root, pdf['name']))]
+        
+        if missing_pdfs:
+            st.warning(f"⚠️ {len(missing_pdfs)} test PDF(s) not found: {', '.join(missing_pdfs)}")
+            st.info("Run `python generate_test_pdf.py` to create test PDFs")
+        
+        # Test all generated PDFs
+        all_test_pdfs = [pdf['name'] for pdf in test_pdfs if os.path.exists(os.path.join(project_root, pdf['name']))]
+        if all_test_pdfs:
+            if st.button("🚀 Test All Generated PDFs", type="primary", key="test_all_generated"):
+                _run_tests(project_root, all_test_pdfs)
 
     # Display results
     if 'test_results' in st.session_state:

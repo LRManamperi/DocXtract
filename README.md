@@ -1,188 +1,436 @@
-# DocXtract
+# 📄 DocXtract
 
-A Python library for extracting tables and charts from PDF documents.
+> **Intelligent PDF Data Extraction with AI-Powered Analysis**
 
-## Features
+A powerful Python library for extracting structured data from PDF documents including tables, charts, and graphs. Features **LangChain integration** for AI-powered document analysis using **Groq** or **OpenAI** LLMs.
 
-- Extract tables from PDFs using multiple detection strategies (lattice, stream, ML-based)
-- Detect and classify various chart types (bar charts, line charts, pie charts, etc.)
-- Camelot-compatible API for easy migration
-- Extensible architecture with pluggable detectors and parsers
+---
 
-## Installation
+## 🏗️ System Architecture
 
-```bash
-pip install -r requirements.txt
+```
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                              DocXtract System                                    │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                  │
+│   ┌─────────────┐                                                               │
+│   │   📄 PDF    │                                                               │
+│   │   Input     │                                                               │
+│   └──────┬──────┘                                                               │
+│          │                                                                       │
+│          ▼                                                                       │
+│   ┌─────────────────────────────────────────────────────────────────────────┐   │
+│   │                        EXTRACTION PIPELINE                               │   │
+│   │  ┌───────────┐    ┌──────────────┐    ┌─────────────┐    ┌──────────┐  │   │
+│   │  │  PyMuPDF  │───▶│   OpenCV +   │───▶│  Tesseract  │───▶│  Pandas  │  │   │
+│   │  │  Render   │    │   ML Models  │    │    OCR      │    │  Export  │  │   │
+│   │  └───────────┘    └──────────────┘    └─────────────┘    └──────────┘  │   │
+│   └─────────────────────────────────────────────────────────────────────────┘   │
+│          │                                                                       │
+│          ▼                                                                       │
+│   ┌─────────────────────────────────────────────────────────────────────────┐   │
+│   │                         EXTRACTION RESULTS                               │   │
+│   │     ┌────────────┐      ┌────────────┐      ┌────────────────┐          │   │
+│   │     │  📊 Tables │      │  📈 Charts │      │  📋 Metadata   │          │   │
+│   │     │ (DataFrame)│      │  (Values)  │      │  (Confidence)  │          │   │
+│   │     └────────────┘      └────────────┘      └────────────────┘          │   │
+│   └─────────────────────────────────────────────────────────────────────────┘   │
+│          │                                                                       │
+│          ▼                                                                       │
+│   ┌─────────────────────────────────────────────────────────────────────────┐   │
+│   │                    🤖 AI ANALYSIS (LangChain)                            │   │
+│   │  ┌─────────────────────────────────────────────────────────────────┐    │   │
+│   │  │  Groq API  ──or──  OpenAI API                                   │    │   │
+│   │  │     │                    │                                       │    │   │
+│   │  │     ▼                    ▼                                       │    │   │
+│   │  │  LLaMA 3.3 70B      GPT-4 / GPT-3.5                             │    │   │
+│   │  │     │                    │                                       │    │   │
+│   │  │     └────────┬───────────┘                                       │    │   │
+│   │  │              ▼                                                   │    │   │
+│   │  │     📝 Document Insights                                         │    │   │
+│   │  │     💬 Interactive Q&A                                           │    │   │
+│   │  └─────────────────────────────────────────────────────────────────┘    │   │
+│   └─────────────────────────────────────────────────────────────────────────┘   │
+│                                                                                  │
+└─────────────────────────────────────────────────────────────────────────────────┘
 ```
 
-### OCR Support (Required for Table Text Extraction)
+---
 
-DocXtract uses Tesseract OCR for extracting text from table cells. Install it using one of these methods:
+## 🔄 Complete Processing Flow
 
-**Option 1: Automatic Installation (Windows)**
-```bash
-python install_tesseract.py
+```
+                              ┌──────────────────┐
+                              │   📤 Upload PDF  │
+                              └────────┬─────────┘
+                                       │
+                                       ▼
+                         ┌─────────────────────────────┐
+                         │   Page Rendering (3x DPI)   │
+                         │   PyMuPDF → NumPy Array     │
+                         └─────────────┬───────────────┘
+                                       │
+                         ┌─────────────┴───────────────┐
+                         │                             │
+                         ▼                             ▼
+             ┌───────────────────────┐    ┌───────────────────────┐
+             │   📈 CHART DETECTION  │    │   📊 TABLE DETECTION  │
+             │   (Runs First)        │    │   (Excludes Charts)   │
+             └───────────┬───────────┘    └───────────┬───────────┘
+                         │                             │
+        ┌────────────────┴────────────────┐           │
+        │                                 │           │
+        ▼                                 ▼           ▼
+┌───────────────────┐         ┌───────────────────────────────────┐
+│  Axis Detection   │         │      Detection Strategy           │
+│  • Hough Lines    │         │  ┌─────────────────────────────┐  │
+│  • H/V pairing    │         │  │  ML Table Transformer       │  │
+│                   │         │  │  (DETR-based)               │  │
+│  Bar Detection    │         │  └──────────────┬──────────────┘  │
+│  • Shape finding  │         │                 │ fallback        │
+│  • Alignment      │         │  ┌──────────────▼──────────────┐  │
+└─────────┬─────────┘         │  │  Line-Based Detection       │  │
+          │                   │  │  (Morphological ops)        │  │
+          ▼                   │  └──────────────┬──────────────┘  │
+┌───────────────────┐         │                 │ + pdfplumber    │
+│   Classification  │         │  ┌──────────────▼──────────────┐  │
+│  ┌─────┐ ┌─────┐  │         │  │  Structure Extraction       │  │
+│  │ BAR │ │LINE │  │         │  │  (Cell boundaries)          │  │
+│  └─────┘ └─────┘  │         │  └─────────────────────────────┘  │
+│  ┌─────┐ ┌───────┐│         └───────────────────────────────────┘
+│  │ PIE │ │SCATTER││                          │
+│  └─────┘ └───────┘│                          │
+└─────────┬─────────┘                          │
+          │                                    │
+          ▼                                    ▼
+┌───────────────────┐              ┌───────────────────┐
+│  Chart Extraction │              │  Table Parsing    │
+│  • OCR Labels     │              │  • Grid-based     │
+│  • Value detect   │              │  • Stream-based   │
+│  • Series extract │              │  • Unstructured   │
+└─────────┬─────────┘              └─────────┬─────────┘
+          │                                  │
+          └──────────────┬───────────────────┘
+                         │
+                         ▼
+              ┌──────────────────────┐
+              │   ExtractionResult   │
+              │  • tables: List      │
+              │  • graphs: List      │
+              │  • to_json()         │
+              │  • summary()         │
+              └──────────┬───────────┘
+                         │
+                         ▼
+              ┌──────────────────────┐
+              │   🤖 AI Analysis     │
+              │   (Optional)         │
+              │  • LangChain Chain   │
+              │  • Groq / OpenAI     │
+              │  • Q&A Interface     │
+              └──────────────────────┘
 ```
 
-**Option 2: Manual Installation**
+---
 
-**On Windows:**
-- Download from: https://github.com/UB-Mannheim/tesseract/wiki
-- Run the installer (tesseract-ocr-w64-setup-*.exe)
-- Add `C:\Program Files\Tesseract-OCR` to your PATH
-- Test with: `tesseract --version`
+## 🤖 LangChain AI Integration
 
-**On Ubuntu/Debian:**
-```bash
-sudo apt-get install tesseract-ocr
+DocXtract integrates **LangChain** for intelligent document analysis using LLMs.
+
+### Supported Providers
+
+| Provider | Models | Free Tier |
+|----------|--------|-----------|
+| **Groq** | LLaMA 3.3 70B, LLaMA 3.1 8B, Mixtral 8x7B, Gemma2 9B | ✅ Yes |
+| **OpenAI** | GPT-4, GPT-4 Turbo, GPT-3.5 Turbo | ❌ Paid |
+
+### LangChain Architecture
+
+```
+┌────────────────────────────────────────────────────────────────────────┐
+│                       LangChain Pipeline                                │
+├────────────────────────────────────────────────────────────────────────┤
+│                                                                         │
+│   ┌─────────────────┐                                                  │
+│   │ Extracted Data  │                                                  │
+│   │ • Tables (JSON) │                                                  │
+│   │ • Charts (JSON) │                                                  │
+│   │ • Metadata      │                                                  │
+│   └────────┬────────┘                                                  │
+│            │                                                            │
+│            ▼                                                            │
+│   ┌─────────────────────────────────────────────────────────────────┐  │
+│   │                    ChatPromptTemplate                            │  │
+│   │  ┌────────────────────────────────────────────────────────────┐ │  │
+│   │  │ System: "You are a data analyst..."                        │ │  │
+│   │  │ Human: "Analyze this data: {tables_json} {charts_json}"    │ │  │
+│   │  └────────────────────────────────────────────────────────────┘ │  │
+│   └────────┬────────────────────────────────────────────────────────┘  │
+│            │                                                            │
+│            ▼                                                            │
+│   ┌─────────────────────────────────────────────────────────────────┐  │
+│   │              LLM Provider Selection                              │  │
+│   │                                                                   │  │
+│   │   ┌─────────────────┐          ┌─────────────────┐              │  │
+│   │   │    ChatGroq     │    OR    │   ChatOpenAI    │              │  │
+│   │   │  (Free Tier)    │          │  (Paid API)     │              │  │
+│   │   │                 │          │                 │              │  │
+│   │   │ • llama-3.3-70b │          │ • gpt-4         │              │  │
+│   │   │ • mixtral-8x7b  │          │ • gpt-3.5-turbo │              │  │
+│   │   └─────────────────┘          └─────────────────┘              │  │
+│   └────────┬────────────────────────────────────────────────────────┘  │
+│            │                                                            │
+│            ▼                                                            │
+│   ┌─────────────────────────────────────────────────────────────────┐  │
+│   │                   StrOutputParser                                │  │
+│   │                        │                                         │  │
+│   │                        ▼                                         │  │
+│   │            ┌─────────────────────┐                               │  │
+│   │            │  Analysis Response  │                               │  │
+│   │            │  • Key Findings     │                               │  │
+│   │            │  • Trends           │                               │  │
+│   │            │  • Recommendations  │                               │  │
+│   │            └─────────────────────┘                               │  │
+│   └─────────────────────────────────────────────────────────────────┘  │
+│                                                                         │
+└────────────────────────────────────────────────────────────────────────┘
 ```
 
-**On macOS:**
-```bash
-brew install tesseract
-```
-
-**Test OCR Installation:**
-```bash
-python test_ocr.py
-```
-
-## Usage
-
-### Web Dashboard (Recommended)
-
-Launch the professional web interface for an intuitive PDF analysis experience:
-
-```bash
-python run_dashboard.py
-```
-
-Or install in development mode:
-
-```bash
-python install_dev.py
-```
-
-Then run:
-
-```bash
-python run_dashboard.py
-```
-
-**Features:**
-- 🎨 **Modern UI**: Clean, professional interface with sidebar navigation
-- 📊 **Interactive Analytics**: Real-time progress bars and status updates
-- 📈 **Visual Insights**: Gradient metric cards and chart galleries
-- 📥 **One-Click Downloads**: Export tables as CSV with professional styling
-- 🔄 **Session Management**: Persistent results across page navigation
-- 📱 **Responsive Design**: Optimized for different screen sizes
-
-**Dashboard Sections:**
-- **🏠 Home**: Upload PDFs and start analysis with guided workflow
-- **📈 Charts Analysis**: Detailed chart detection with confidence metrics
-- **📋 Tables**: Extracted tables with preview and download options
-- **ℹ️ About**: Documentation and feature overview
-
-### Basic Usage
-
-```python
-from docxtract import read_pdf
-
-# Extract tables and graphs from PDF
-result = read_pdf('document.pdf', pages='all', flavor='lattice')
-
-print(f"Found {len(result.tables)} tables and {len(result.graphs)} graphs")
-
-# Access tables
-for i, table in enumerate(result.tables):
-    print(f"Table {i+1}: {table.shape}")
-    df = table.df  # Get as pandas DataFrame
-    table.to_csv(f'table_{i}.csv')
-
-# Access graphs
-for i, graph in enumerate(result.graphs):
-    print(f"Graph {i+1}: {graph.graph_type.value}")
-    graph.save_image(f'graph_{i}.png')
-```
-
-### Advanced Usage
+### Using AI Analysis (Python)
 
 ```python
 from docxtract import DocXtract
-from docxtract.detectors import LineBasedTableDetector
-from docxtract.parsers import GridBasedTableParser
+from docxtract.langchain_pipeline import DocumentExtractionPipeline
 
-# Custom configuration
-extractor = DocXtract(
-    table_detector=LineBasedTableDetector(),
-    table_parser=GridBasedTableParser()
+# Initialize extraction
+extractor = DocXtract(use_ml=True, extract_chart_data=True)
+result = extractor.extract('document.pdf')
+
+# Initialize LangChain pipeline with Groq (free)
+pipeline = DocumentExtractionPipeline(
+    provider='groq',
+    api_key='your-groq-api-key',  # Get free key at console.groq.com
+    model='llama-3.3-70b-versatile'
 )
 
-result = extractor.extract('document.pdf', pages=[1, 2, 3])
+# Analyze extracted data
+analysis = pipeline.analyze(result)
+print(analysis)
+
+# Ask questions about the data
+answer = pipeline.ask("What are the top 3 products by revenue?")
+print(answer)
 ```
 
-## Detection Flavors
+### Using AI Analysis (Dashboard)
 
-- `lattice`: Line-based table detection (best for tables with borders)
-- `stream`: Text clustering table detection (best for tables without borders)
-- `ml`: Machine learning-based detection (requires custom model)
+1. Go to **🤖 AI Analysis** tab
+2. Select provider: **Groq** (free) or **OpenAI**
+3. Enter API key
+4. Click **Analyze Document**
+5. Ask follow-up questions
 
-## Supported Chart Types
+---
 
-- Bar charts (vertical/horizontal)
-- Line charts
-- Pie charts
-- Scatter plots
-- Heatmaps
-- Area charts
-- Stacked bar charts
+## 📁 Project Structure
 
-## Architecture
+```
+DocXtract/
+├── 📄 run_dashboard.py              # Entry point - starts Streamlit UI
+├── 📄 requirements.txt              # All dependencies
+│
+├── 📁 docxtract/                    # Core library
+│   ├── __init__.py
+│   ├── extractors.py                # Main DocXtract class
+│   ├── detectors.py                 # Table & chart detection
+│   ├── parsers.py                   # Table parsing strategies
+│   ├── chart_extractors.py          # Chart data extraction
+│   ├── unstructured_table_parser.py # Borderless table parsing
+│   ├── ml_detectors.py              # ML-based detection (Table Transformer)
+│   ├── data_structures.py           # Core classes
+│   └── langchain_pipeline.py        # 🤖 LangChain AI integration
+│
+├── 📁 UI/                           # Streamlit Dashboard
+│   ├── dashboard.py
+│   ├── config.py
+│   ├── 📁 page_modules/
+│   │   ├── home.py                  # Upload & extract
+│   │   ├── charts_analysis.py       # Chart visualization
+│   │   ├── tables.py                # Table display & export
+│   │   ├── chart_data_tables.py     # Chart data as tables
+│   │   ├── ai_analysis.py           # 🤖 LLM-powered analysis
+│   │   └── about.py
+│   └── 📁 utils/
+│       └── helpers.py
+│
+└── 📁 tests/
+    ├── test_ocr.py
+    ├── test_table_extraction.py
+    └── test_ml_detection.py
+```
 
-The library is organized into several modules:
+---
 
-- `data_structures.py`: Core data classes (Table, Graph, BoundingBox, etc.)
-- `detectors.py`: Detection strategies for tables and graphs
-- `parsers.py`: Parsing strategies for extracting structured data
-- `extractors.py`: Main extraction orchestrator
+## 🎯 Features
 
-## Extending DocXtract
+### Core Capabilities
+- **Multi-Strategy Table Detection**: Lattice (grid), stream (text), ML-based
+- **Unstructured Table Support**: Handle tables without borders
+- **Advanced Chart Detection**: Bar, line, pie, scatter plots
+- **Chart Data Extraction**: Extract values, labels, legends, axes
+- **🤖 AI Analysis**: LLM-powered insights with Groq/OpenAI
 
-### Custom Detectors
+### Chart Data Extraction
+```
+┌─────────────────────────────────────────────────────┐
+│                Chart Data Pipeline                   │
+├─────────────────────────────────────────────────────┤
+│                                                      │
+│   ┌─────────────┐    ┌─────────────┐               │
+│   │ Chart Image │───▶│  Detection  │               │
+│   └─────────────┘    └──────┬──────┘               │
+│                             │                       │
+│          ┌──────────────────┼──────────────────┐   │
+│          ▼                  ▼                  ▼   │
+│   ┌────────────┐    ┌────────────┐    ┌──────────┐│
+│   │ Bar Values │    │Line Points │    │Pie Slices││
+│   │            │    │            │    │          ││
+│   │ • Heights  │    │ • X coords │    │ • Angles ││
+│   │ • Colors   │    │ • Y coords │    │ • Colors ││
+│   │ • Labels   │    │ • Series   │    │ • Labels ││
+│   └─────┬──────┘    └─────┬──────┘    └────┬─────┘│
+│         │                 │                │      │
+│         └─────────────────┴────────────────┘      │
+│                           │                       │
+│                           ▼                       │
+│                  ┌─────────────────┐              │
+│                  │   OCR Labels    │              │
+│                  │   (Tesseract)   │              │
+│                  └────────┬────────┘              │
+│                           │                       │
+│                           ▼                       │
+│                  ┌─────────────────┐              │
+│                  │  ChartSeries    │              │
+│                  │  • values[]     │              │
+│                  │  • labels[]     │              │
+│                  │  • to_csv()     │              │
+│                  └─────────────────┘              │
+│                                                   │
+└───────────────────────────────────────────────────┘
+```
+
+---
+
+## 🚀 Quick Start
+
+### Installation
+
+```bash
+# Clone and install
+git clone https://github.com/yourusername/DocXtract.git
+cd DocXtract
+pip install -r requirements.txt
+
+# Install Tesseract OCR
+python install_tesseract.py   # Windows
+# brew install tesseract       # macOS
+# sudo apt install tesseract-ocr  # Linux
+```
+
+### Run Dashboard
+
+```bash
+python run_dashboard.py
+```
+
+Open **http://localhost:8502** in your browser.
+
+### Python API
 
 ```python
-from docxtract.detectors import BaseDetector
-from docxtract.data_structures import BoundingBox
+from docxtract import DocXtract
 
-class MyCustomDetector(BaseDetector):
-    def detect(self, page_image, page_num):
-        # Your detection logic here
-        return [BoundingBox(x1, y1, x2, y2), ...]
+# Initialize
+extractor = DocXtract(
+    use_ml=True,
+    extract_chart_data=True,
+    handle_unstructured=True
+)
+
+# Extract
+result = extractor.extract('document.pdf', pages='all')
+
+# Access tables
+for table in result.tables:
+    df = table.df  # pandas DataFrame
+    table.to_csv(f'table_{table.page}.csv')
+
+# Access charts
+for chart in result.graphs:
+    print(f"Type: {chart.graph_type.name}")
+    print(f"Values: {chart.extracted_values}")
 ```
 
-### Custom Parsers
+---
 
-```python
-from docxtract.parsers import BaseParser
-from docxtract.data_structures import Table
+## ⚙️ Configuration
 
-class MyCustomParser(BaseParser):
-    def parse(self, region, bbox):
-        # Your parsing logic here
-        return Table(data, bbox, page, accuracy)
+### DocXtract Parameters
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `use_ml` | `True` | Use ML table detection |
+| `extract_chart_data` | `True` | Extract chart values |
+| `handle_unstructured` | `True` | Parse borderless tables |
+
+### Detection Flavors
+
+| Flavor | Best For |
+|--------|----------|
+| `lattice` | Tables with grid lines/borders |
+| `stream` | Tables without borders |
+| `ml` | Complex/mixed tables |
+
+---
+
+## 📦 Dependencies
+
+### Core
+```
+PyMuPDF>=1.23.0      # PDF rendering
+opencv-python>=4.8.0  # Image processing  
+pytesseract>=0.3.10   # OCR
+pandas>=2.0.0         # DataFrames
+pdfplumber>=0.10.0    # PDF text extraction
 ```
 
-## Requirements
+### ML (Optional)
+```
+torch>=2.0.0          # Deep learning
+transformers>=4.30.0  # Hugging Face
+timm>=0.9.0           # Vision models
+```
 
-- Python 3.8+
-- PyMuPDF (Fitz)
-- OpenCV
-- NumPy
-- Pandas
-- Pillow
-- Matplotlib
-- pytesseract (optional, for OCR)
+### AI Analysis
+```
+langchain-core>=0.1.0   # LangChain framework
+langchain-groq>=0.1.0   # Groq (free LLM)
+langchain-openai>=0.1.0 # OpenAI
+```
 
-## License
+---
+
+## 🐛 Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| OCR not working | Run `python install_tesseract.py` |
+| ML models not loading | `pip install torch transformers timm` |
+| Charts detected as tables | Check chart has clear bars/lines |
+| LangChain errors | `pip install langchain-core langchain-groq` |
+
+---
+
+## 📄 License
 
 MIT License
