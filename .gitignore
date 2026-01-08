@@ -131,7 +131,6 @@ dmypy.json
 # Project specific - Generated datasets and charts
 chart_dataset/
 charts/
-*.pdf
 *.png
 *.jpg
 *.jpeg
@@ -140,7 +139,6 @@ charts/
 docxtract_test_results.json
 test_results/
 results/
-test_*.pdf
 *_detailed.json
 *_detailed.csv
 table_*.csv
