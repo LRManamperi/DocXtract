@@ -12,8 +12,8 @@ from docxtract.data_structures import ElementType
 import cv2
 import numpy as np
 
-def test_chart_classification(pdf_path, expected_type):
-    """Test chart classification for a PDF"""
+def run_chart_classification_test(pdf_path, expected_type):
+    """Test chart classification for a PDF (standalone script, not pytest)"""
     print(f"\nTesting: {pdf_path}")
     print(f"Expected type: {expected_type}")
 
@@ -73,7 +73,7 @@ if __name__ == "__main__":
     results = []
     for pdf_path, expected in test_files:
         if os.path.exists(pdf_path):
-            results.append(test_chart_classification(pdf_path, expected))
+            results.append(run_chart_classification_test(pdf_path, expected))
         else:
             print(f"File not found: {pdf_path}")
 

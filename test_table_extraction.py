@@ -10,8 +10,8 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from docxtract import DocXtract
 import numpy as np
 
-def test_table_extraction():
-    """Test table extraction on a sample PDF with CSV export"""
+def run_table_extraction_test():
+    """Test table extraction on a sample PDF with CSV export (standalone script, not pytest)"""
     print("🔍 Testing table extraction and CSV export...")
 
     # Check if we have test PDFs
@@ -98,4 +98,4 @@ def test_table_extraction():
         traceback.print_exc()
 
 if __name__ == "__main__":
-    test_table_extraction()
+    run_table_extraction_test()

@@ -10,8 +10,8 @@ sys.path.insert(0, os.path.dirname(__file__))
 
 from docxtract import DocXtract
 
-def test_ml_detection(pdf_path):
-    """Compare ML vs traditional table detection"""
+def run_ml_detection_test(pdf_path):
+    """Compare ML vs traditional table detection (standalone script, not pytest)"""
     
     print("="*60)
     print("ML-BASED TABLE DETECTION TEST")
@@ -89,4 +89,4 @@ if __name__ == "__main__":
         print(f"Error: File not found: {pdf_path}")
         sys.exit(1)
     
-    test_ml_detection(pdf_path)
+    run_ml_detection_test(pdf_path)

@@ -16,8 +16,8 @@ from docxtract.data_structures import ElementType
 import json
 
 
-def test_chart_data_extraction():
-    """Test chart data extraction from various chart types"""
+def run_chart_data_extraction_test():
+    """Test chart data extraction from various chart types (standalone script, not pytest)"""
     print("\n" + "="*70)
     print("TEST 1: Chart Data Extraction")
     print("="*70)
@@ -92,8 +92,8 @@ def test_chart_data_extraction():
         return False
 
 
-def test_unstructured_tables():
-    """Test extraction of tables without clear grid lines"""
+def run_unstructured_tables_test():
+    """Test extraction of tables without clear grid lines (standalone script, not pytest)"""
     print("\n" + "="*70)
     print("TEST 2: Unstructured Table Extraction")
     print("="*70)
@@ -152,8 +152,8 @@ def test_unstructured_tables():
         return False
 
 
-def test_combined_extraction():
-    """Test extraction of both tables and charts from same document"""
+def run_combined_extraction_test():
+    """Test extraction of both tables and charts from same document (standalone script, not pytest)"""
     print("\n" + "="*70)
     print("TEST 3: Combined Extraction (Tables + Charts)")
     print("="*70)
@@ -202,8 +202,8 @@ def test_combined_extraction():
         return False
 
 
-def test_synthetic_data():
-    """Test extraction on synthetic/generated data"""
+def run_synthetic_data_test():
+    """Test extraction on synthetic/generated data (standalone script, not pytest)"""
     print("\n" + "="*70)
     print("TEST 4: Synthetic Data Extraction")
     print("="*70)
@@ -276,8 +276,8 @@ def test_synthetic_data():
         return False
 
 
-def test_data_export_formats():
-    """Test various data export formats"""
+def run_data_export_formats_test():
+    """Test various data export formats (standalone script, not pytest)"""
     print("\n" + "="*70)
     print("TEST 5: Data Export Formats")
     print("="*70)
@@ -368,11 +368,11 @@ def main():
     print("="*70)
     
     results = {
-        "Chart Data Extraction": test_chart_data_extraction(),
-        "Unstructured Tables": test_unstructured_tables(),
-        "Combined Extraction": test_combined_extraction(),
-        "Synthetic Data": test_synthetic_data(),
-        "Data Export Formats": test_data_export_formats()
+        "Chart Data Extraction": run_chart_data_extraction_test(),
+        "Unstructured Tables": run_unstructured_tables_test(),
+        "Combined Extraction": run_combined_extraction_test(),
+        "Synthetic Data": run_synthetic_data_test(),
+        "Data Export Formats": run_data_export_formats_test()
     }
     
     # Print summary
