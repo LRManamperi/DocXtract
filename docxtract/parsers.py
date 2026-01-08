@@ -22,7 +22,7 @@ class BaseParser(ABC):
 class GridBasedTableParser(BaseParser):
     """Parse tables by detecting grid structure - improved for accuracy"""
 
-    def __init__(self, min_rows: int = 2, min_cols: int = 2):
+    def __init__(self, min_rows: int = 1, min_cols: int = 1):
         """
         Initialize parser
         
@@ -33,7 +33,7 @@ class GridBasedTableParser(BaseParser):
         self.min_rows = min_rows
         self.min_cols = min_cols
 
-    def parse(self, region: np.ndarray, bbox: BoundingBox) -> Table:
+    def parse(self, region: np.ndarray, bbox: BoundingBox, page_obj=None, img_width=None, img_height=None) -> Table:
         """Parse table region into structured data with better validation"""
         if region.size == 0:
             return Table(np.array([]), bbox, 0, 0.0)
@@ -87,15 +87,14 @@ class GridBasedTableParser(BaseParser):
         if len(h_lines) < self.min_rows + 1 or len(v_lines) < self.min_cols + 1:
             return Table(np.array([]), bbox, 0, 0.0)
 
-        # Extract cells using OCR
-        cells_data = self._extract_cells(region, h_lines, v_lines)
+        # Extract cells using PDF text or OCR
+        cells_data = self._extract_cells(region, h_lines, v_lines, bbox, page_obj, img_width, img_height)
 
         # Convert to 2D numpy array
         data = self._cells_to_array(cells_data, len(h_lines) - 1, len(v_lines) - 1)
 
-        # Validate table has actual content
-        if not self._has_content(data):
-            return Table(np.array([]), bbox, 0, 0.0)
+        # Don't reject tables with empty cells - just return what we found
+        # Even empty tables show structure
 
         # Calculate accuracy based on grid consistency
         accuracy = self._calculate_accuracy(len(h_lines), len(v_lines), len(cells_data))
@@ -172,28 +171,71 @@ class GridBasedTableParser(BaseParser):
         return placeholder_ratio < 0.8  # Allow up to 80% placeholders for OCR-less operation
 
     def _extract_cells(self, image: np.ndarray, h_lines: List[int], 
-                       v_lines: List[int]) -> List[Tuple[int, int, str]]:
-        """Extract text from grid cells using OCR (robust to missing pytesseract)"""
+                       v_lines: List[int], bbox: BoundingBox = None, 
+                       page_obj=None, img_width=None, img_height=None) -> List[Tuple[int, int, str]]:
+        """Extract text from grid cells using PDF text extraction first, then OCR fallback"""
         cells = []
 
-        # Try to import pytesseract, fall back to empty text if unavailable
+        # Method 1: Try PDF text extraction (fastest and most accurate)
+        if page_obj is not None and bbox is not None and img_width is not None:
+            try:
+                import fitz
+                # Calculate scale factor (image is 3x scaled)
+                page_width = page_obj.rect.width
+                page_height = page_obj.rect.height
+                scale_x = img_width / page_width
+                scale_y = img_height / page_height
+                
+                text_found = False
+                for i in range(len(h_lines) - 1):
+                    for j in range(len(v_lines) - 1):
+                        y1 = int(h_lines[i])
+                        y2 = int(h_lines[i + 1])
+                        x1 = int(v_lines[j])
+                        x2 = int(v_lines[j + 1])
+
+                        if y2 <= y1 or x2 <= x1:
+                            cells.append((i, j, ''))
+                            continue
+
+                        # Convert image coordinates back to PDF coordinates
+                        pdf_x1 = (bbox.x1 + x1) / scale_x
+                        pdf_y1 = (bbox.y1 + y1) / scale_y
+                        pdf_x2 = (bbox.x1 + x2) / scale_x
+                        pdf_y2 = (bbox.y1 + y2) / scale_y
+
+                        # Extract text from PDF region
+                        rect = fitz.Rect(pdf_x1, pdf_y1, pdf_x2, pdf_y2)
+                        text = page_obj.get_text("text", clip=rect).strip()
+                        
+                        if text:
+                            text_found = True
+                        
+                        cells.append((i, j, text))
+                
+                # If we got any non-empty text, return these cells
+                if text_found:
+                    return cells
+                else:
+                    cells = []  # Reset for OCR fallback
+            except Exception as e:
+                cells = []
+
+        # Method 2: Try OCR (fallback)
         try:
             import pytesseract
             has_ocr = True
         except ImportError:
             has_ocr = False
-            print("Warning: pytesseract not available. Install it for OCR support.")
 
         # Check if Tesseract is actually installed
         tesseract_available = False
         if has_ocr:
             try:
-                # Try to get tesseract version to check if it's installed
                 pytesseract.get_tesseract_version()
                 tesseract_available = True
             except Exception:
-                print("Warning: Tesseract OCR not found. Table extraction will return empty cells.")
-                print("Install Tesseract from: https://github.com/UB-Mannheim/tesseract/wiki")
+                pass
 
         for i in range(len(h_lines) - 1):
             for j in range(len(v_lines) - 1):
@@ -202,7 +244,6 @@ class GridBasedTableParser(BaseParser):
                 x1 = int(v_lines[j])
                 x2 = int(v_lines[j + 1])
 
-                # Ensure valid coordinates
                 if y2 <= y1 or x2 <= x1:
                     continue
                 
@@ -212,15 +253,12 @@ class GridBasedTableParser(BaseParser):
                 y2 = min(image.shape[0], y2)
                 x2 = min(image.shape[1], x2)
 
-                # Extract cell region
                 cell_region = image[y1:y2, x1:x2]
 
                 text = ''
                 if tesseract_available and cell_region.size > 0:
                     try:
-                        # Preprocess cell for better OCR
                         cell_gray = cv2.cvtColor(cell_region, cv2.COLOR_BGR2GRAY)
-                        # Apply thresholding
                         _, cell_thresh = cv2.threshold(
                             cell_gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU
                         )
@@ -229,11 +267,8 @@ class GridBasedTableParser(BaseParser):
                             cell_thresh,
                             config='--psm 6 --oem 3'
                         ).strip()
-                    except Exception as e:
+                    except Exception:
                         text = ''
-                elif not tesseract_available:
-                    # Provide placeholder text indicating OCR is not available
-                    text = f"[Cell {i},{j}]"  # Placeholder for missing OCR
 
                 cells.append((i, j, text))
 
